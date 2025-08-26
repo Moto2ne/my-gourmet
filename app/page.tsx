@@ -33,8 +33,6 @@ area?: string;
 genre?: string;
 priceRange?: Price;
 url?: string;
-lat?: number;
-lng?: number;
 status: Status;
 rating?: number; // 0-5
 note?: string;
@@ -93,8 +91,6 @@ area: x.area ?? undefined,
 genre: x.genre ?? undefined,
 priceRange: (x.priceRange ?? "") as Price,
 url: x.url ?? undefined,
-lat: x.lat ?? undefined,
-lng: x.lng ?? undefined,
 status: x.status,
 rating: x.rating ?? undefined,
 note: x.note ?? undefined,
@@ -269,18 +265,7 @@ function Card({
         <p className="text-sm text-neutral-700 whitespace-pre-wrap">{place.note}</p>
       )}
 
-      {(place.lat && place.lng) || place.name ? (
-        <iframe
-          className="w-full h-40 rounded-xl border"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          src={`https://www.google.com/maps?q=${encodeURIComponent(
-            place.lat && place.lng
-              ? `${place.lat},${place.lng}`
-              : place.name
-          )}&output=embed`}
-        />
-      ) : null}
+
 
       {place.photos?.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
@@ -349,8 +334,6 @@ function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; plac
   const [genre, setGenre] = useState(place?.genre || "");
   const [price, setPrice] = useState<Price>(place?.priceRange || "");
   const [url, setUrl] = useState(place?.url || "");
-  const [lat, setLat] = useState(place?.lat?.toString() || "");
-  const [lng, setLng] = useState(place?.lng?.toString() || "");
   const [status, setStatus] = useState<Status>(place?.status || "want");
   const [rating, setRating] = useState<number>(place?.rating ?? 0);
   const [note, setNote] = useState(place?.note || "");
@@ -363,14 +346,12 @@ function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; plac
       {readOnly && <div className="mb-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded">閲覧専用モードのため編集できません。`?view=public` を外してください。</div>}
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="店名*" value={name} onChange={(e) => setName(e.target.value)} placeholder="例：トペ" />
+        <Input label="店名*" value={name} onChange={(e) => setName(e.target.value)} />
         <Select label="ステータス" value={status} onChange={(e) => setStatus(e.target.value as Status)} options={["want", "booked", "done"]} />
         <Input label="エリア" value={area} onChange={(e) => setArea(e.target.value)} />
         <Input label="ジャンル" value={genre} onChange={(e) => setGenre(e.target.value)} />
         <Select label="価格帯" value={price} onChange={(e) => setPrice(e.target.value as Price)} options={["", "¥", "¥¥", "¥¥¥", "¥¥¥¥"]} />
         <Input label="URL (公式/食べログ)" value={url} onChange={(e) => setUrl(e.target.value)} />
-        <Input label="緯度 (例 35.1709)" value={lat} onChange={(e) => setLat(e.target.value)} />
-        <Input label="経度 (例 136.8815)" value={lng} onChange={(e) => setLng(e.target.value)} />
         <div className="col-span-2">
           <label className="text-sm text-neutral-600">一言メモ（140文字まで）</label>
           <textarea className="w-full border rounded-xl px-3 py-2 mt-1" maxLength={140} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -394,8 +375,6 @@ function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; plac
                 genre: genre.trim(),
                 priceRange: price,
                 url: url.trim(),
-                lat: lat.trim() ? Number(lat) : undefined,
-                lng: lng.trim() ? Number(lng) : undefined,
                 status,
                 rating,
                 note: note.trim(),
