@@ -6,7 +6,6 @@ addDoc,
 collection,
 deleteDoc,
 doc,
-getDocs,
 onSnapshot,
 orderBy,
 query,
@@ -87,26 +86,22 @@ const x = d.data() as any;
 return {
 id: d.id,
 name: x.name,
-area: x.area ?? undefined,
-genre: x.genre ?? undefined,
+area: x.area as string | undefined,
+genre: x.genre as string | undefined,
 priceRange: (x.priceRange ?? "") as Price,
-url: x.url ?? undefined,
-status: x.status,
-rating: x.rating ?? undefined,
-note: x.note ?? undefined,
+url: x.url as string |  undefined,
+status: x.status as Status,
+rating: x.rating as number | undefined,
+note: x.note as string | undefined,
 photos: (x.photos ?? []) as Photo[],
-createdAt: x.createdAt ?? nowIso(),
-updatedAt: x.updatedAt ?? nowIso(),
+createdAt: (x.createdAt ?? nowIso()) as string,
+updatedAt: (x.updatedAt ?? nowIso()) as string,
 };
 });
 setPlaces(arr);
 });
 return () => unsub();
 }, [placesCol]);
-
-
-const editing = useMemo(() => places.find((p) => p.id === editId) || null, [editId, places]);
-
 
 const filtered = useMemo(() => {
 return places
