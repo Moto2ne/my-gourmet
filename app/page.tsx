@@ -66,26 +66,34 @@ return value;
 
 
 export default function Page() {
-// ?list=xxxx（無ければ "default"）で、人ごとのDBを分ける
-const listId = useQueryParam("list") || "default";
-const readOnly = useQueryParam("view") === "public";
-
-
-const [places, setPlaces] = useState<Place[]>([]);
-const [filters, setFilters] = useState<Filters>({ status: "" });
-const [editId, setEditId] = useState<string | null>(null);
-// Firestore 参照
-const placesCol = useMemo(() => collection(db, "lists", listId, "places"), [listId]);
-
-
-// Realtime 購読
-useEffect(() => {
-const q = query(placesCol, orderBy("updatedAt", "desc"));
-const unsub = onSnapshot(q, (snap) => {
-const arr: Place[] = snap.docs.map((d) => {
-const x = d.data() as Place;
-return {
-id: d.id,
+  // ?list=xxxx（無ければ "default"）で、人ごとのDBを分ける
+  const listId = useQueryParam("list") || "default";
+  const readOnly = useQueryParam("view") === "public";
+  
+  
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [filters, setFilters] = useState<Filters>({ status: "" });
+  const [editId, setEditId] = useState<string | null>(null);
+  // Firestore 参照
+  const placesCol = useMemo(() => collection(db, "lists", listId, "places"), [listId]);
+  
+  // ジャンル一覧を動的に取得
+  const genreOptions = useMemo(() => {
+    const set = new Set<string>();
+    places.forEach((p) => {
+      if (p.genre) set.add(p.genre);
+    });
+    return Array.from(set);
+  }, [places]);
+  
+  // Realtime 購読
+  useEffect(() => {
+    const q = query(placesCol, orderBy("updatedAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const arr: Place[] = snap.docs.map((d) => {
+        const x = d.data() as Place;
+        return {
+          id: d.id,
 name: x.name,
 area: x.area as string | undefined,
 genre: x.genre as string | undefined,
@@ -176,7 +184,11 @@ readOnly ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 <section className="md:col-span-2">
-<FilterBar filters={filters} setFilters={setFilters} />
+  <FilterBar
+    filters={filters}
+    setFilters={setFilters}
+    genreOptions={genreOptions} // ← これを追加
+  />
 {filtered.length === 0 ? (
 <div className="mt-6 p-6 rounded-2xl bg-white shadow-sm border">まだお店がありません。右側で追加してみてね。</div>
 ) : (
@@ -345,7 +357,7 @@ function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; plac
       {readOnly && <div className="mb-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded">閲覧専用モードのため編集できません。`?view=public` を外してください。</div>}
 
       <div className="grid grid-cols-2 gap-3">
-        <Input label="店名*" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input label="店名" value={name} onChange={(e) => setName(e.target.value)} />
         <Select label="ステータス" value={status} onChange={(e) => setStatus(e.target.value as Status)} options={["want", "booked", "done"]} />
         <Input label="エリア" value={area} onChange={(e) => setArea(e.target.value)} />
         <Input label="ジャンル" value={genre} onChange={(e) => setGenre(e.target.value)} />
@@ -416,9 +428,11 @@ return (
 function FilterBar({
   filters,
   setFilters,
+  genreOptions = [],
 }: {
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
+  genreOptions?: string[];
 }) {
   return (
     <div className="flex flex-wrap gap-3 mb-4">
@@ -434,12 +448,16 @@ function FilterBar({
         value={filters.area || ""}
         onChange={(e) => setFilters((f) => ({ ...f, area: e.target.value }))}
       />
-      <input
+      <select
         className="border rounded-xl px-3 py-2"
-        placeholder="ジャンル"
         value={filters.genre || ""}
         onChange={(e) => setFilters((f) => ({ ...f, genre: e.target.value }))}
-      />
+      >
+        <option value="">(ジャンル指定なし)</option>
+        {genreOptions.map((g) => (
+          <option key={g} value={g}>{g}</option>
+        ))}
+      </select>
       <select
         className="border rounded-xl px-3 py-2"
         value={filters.status || ""}
