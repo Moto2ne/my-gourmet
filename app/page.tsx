@@ -13,6 +13,7 @@ serverTimestamp,
 updateDoc,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import Image from "next/image";
 // ---------- Types ----------
 export type Status = "want" | "booked" | "done";
 export type Price = "" | "¥" | "¥¥" | "¥¥¥" | "¥¥¥¥";
@@ -82,7 +83,7 @@ useEffect(() => {
 const q = query(placesCol, orderBy("updatedAt", "desc"));
 const unsub = onSnapshot(q, (snap) => {
 const arr: Place[] = snap.docs.map((d) => {
-const x = d.data() as any;
+const x = d.data() as Place;
 return {
 id: d.id,
 name: x.name,
@@ -127,7 +128,7 @@ createdAt,
 updatedAt: createdAt,
 createdAtTS: serverTimestamp(), // 参考：並び替えに使いたければ別フィールドを用意
 updatedAtTS: serverTimestamp(),
-} as any);
+});
 }
 setEditId(null);
 }
@@ -164,15 +165,13 @@ await updateDoc(doc(placesCol, id), { photos: merged, updatedAt: nowIso(), updat
 return (
 <div className="min-h-screen bg-neutral-50 text-neutral-900 p-4 md:p-8">
 <header className="flex items-center justify-between mb-6">
-<h1 className="text-2xl md:text-3xl font-bold">🍽️ 二人のグルメ制覇リスト</h1>
+<h1 className="text-2xl md:text-3xl font-bold">🍽️グルメ制覇リスト</h1>
 <span className={cls(
 "text-sm px-3 py-1 rounded-full",
 readOnly ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
 )}>{readOnly ? "閲覧専用" : "編集可能"}</span>
 </header>
 
-
-<ShareHint />
 
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -252,7 +251,7 @@ function Card({
           target="_blank"
           rel="noreferrer"
         >
-          🔗 公式/食べログなど
+          🔗食べログなど
         </a>
       )}
 
@@ -262,17 +261,21 @@ function Card({
 
 
 
-      {place.photos?.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {place.photos.slice(0, 3).map((ph) => (
-            <img
-              key={ph.id}
-              src={ph.url}
-              className="rounded-xl w-full h-28 object-cover"
-            />
-          ))}
-        </div>
-      )}
+{place.photos?.length > 0 && (
+  <div className="grid grid-cols-3 gap-2">
+    {place.photos.slice(0, 3).map((ph) => (
+      <Image
+        key={ph.id}
+        src={ph.url}
+        alt={place.name + "の写真"}
+        className="rounded-xl w-full h-28 object-cover"
+        width={300}
+        height={112}
+        style={{ objectFit: "cover" }}
+      />
+    ))}
+  </div>
+)}
 
       <div className="flex items-center gap-3 mt-1">
         <div className="text-sm text-neutral-700">
@@ -323,7 +326,8 @@ function Card({
     </div>
   );
 }
-function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; place: Place | null; onCancel: () => void; onSave: (data: any) => void; }) {
+function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; place: Place | null; onCancel: () => void;   onSave: (data: Omit<Place, "id" | "createdAt" | "updatedAt" | "photos"> & { photos?: Photo[] }) => void;
+}) {
   const [name, setName] = useState(place?.name || "");
   const [area, setArea] = useState(place?.area || "");
   const [genre, setGenre] = useState(place?.genre || "");
@@ -385,27 +389,6 @@ function Editor({ readOnly, place, onCancel, onSave }: { readOnly: boolean; plac
   );
 }
 
-function ShareHint() {
-  const [copied, setCopied] = useState(false);
-  const base = typeof window !== "undefined" ? window.location.origin + window.location.pathname : "";
-  const list = typeof window !== "undefined" ? new URL(window.location.href).searchParams.get("list") || "default" : "default";
-  const publicUrl = `${base}?list=${encodeURIComponent(list)}&view=public`;
-  return (
-    <div className="mt-4 bg-white border rounded-2xl shadow-sm p-4">
-      <h3 className="font-semibold mb-2">🔗 共有リンク（閲覧専用）</h3>
-      <div className="flex items-center gap-2">
-        <input className="flex-1 border rounded-xl px-3 py-2" readOnly value={publicUrl} />
-        <button className="px-3 py-2 rounded-xl border hover:bg-neutral-50" onClick={() => {
-          navigator.clipboard.writeText(publicUrl).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1200);
-          });
-        }}>{copied ? "コピー済み" : "コピー"}</button>
-      </div>
-      <p className="text-xs text-neutral-600 mt-2">このURLを彼に送れば、ログインなしで「閲覧だけ」できます。</p>
-    </div>
-  );
-}
 function Input(props: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
 const { label, className, ...rest } = props;
 return (
