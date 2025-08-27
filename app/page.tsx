@@ -2,15 +2,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { db, storage } from "./firebase"; 
 import {
-addDoc,
-collection,
-deleteDoc,
-doc,
-onSnapshot,
-orderBy,
-query,
-serverTimestamp,
-updateDoc,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Image from "next/image";
@@ -66,8 +67,8 @@ return value;
 
 
 export default function Page() {
-  // ?list=xxxx（無ければ "default"）で、人ごとのDBを分ける
-  const listId = useQueryParam("list") || "default";
+  // ?user=xxxx（無ければ "default"）で、人ごとのデータを分ける
+  const userId = useQueryParam("user") || "default";
   const readOnly = useQueryParam("view") === "public";
   
   
@@ -75,7 +76,7 @@ export default function Page() {
   const [filters, setFilters] = useState<Filters>({ status: "" });
   const [editId, setEditId] = useState<string | null>(null);
   // Firestore 参照
-  const placesCol = useMemo(() => collection(db, "lists", listId, "places"), [listId]);
+  const placesCol = useMemo(() => collection(db, "places"), []);
   
   // ジャンル一覧を動的に取得
   const genreOptions = useMemo(() => {
@@ -88,7 +89,7 @@ export default function Page() {
   
   // Realtime 購読
   useEffect(() => {
-    const q = query(placesCol, orderBy("updatedAt", "desc"));
+    const q = query(placesCol, where("userId", "==", userId), orderBy("updatedAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       const arr: Place[] = snap.docs.map((d) => {
         const x = d.data() as Place;
@@ -107,10 +108,10 @@ createdAt: (x.createdAt ?? nowIso()) as string,
 updatedAt: (x.updatedAt ?? nowIso()) as string,
 };
 });
-setPlaces(arr);
-});
-return () => unsub();
-}, [placesCol]);
+    setPlaces(arr);
+    });
+    return () => unsub();
+  }, [placesCol, userId]);
 
 const filtered = useMemo(() => {
 return places
@@ -129,14 +130,15 @@ updatedAt: nowIso(),
 });
 } else {
 const createdAt = nowIso();
-await addDoc(placesCol, {
-...data,
-photos: data.photos ?? [],
-createdAt,
-updatedAt: createdAt,
-createdAtTS: serverTimestamp(), // 参考：並び替えに使いたければ別フィールドを用意
-updatedAtTS: serverTimestamp(),
-});
+  await addDoc(placesCol, {
+    ...data,
+    userId,
+    photos: data.photos ?? [],
+    createdAt,
+    updatedAt: createdAt,
+    createdAtTS: serverTimestamp(), // 参考：並び替えに使いたければ別フィールドを用意
+    updatedAtTS: serverTimestamp(),
+  });
 }
 setEditId(null);
 }
@@ -157,7 +159,7 @@ async function addPhotos(id: string, files: FileList) {
 const uploads = Array.from(files)
 .slice(0, 6)
 .map(async (file) => {
-const path = `lists/${listId}/places/${id}/${uuid()}-${file.name}`;
+const path = `users/${userId}/places/${id}/${uuid()}-${file.name}`;
 const storageRef = ref(storage, path);
 await uploadBytes(storageRef, file);
 const url = await getDownloadURL(storageRef);
