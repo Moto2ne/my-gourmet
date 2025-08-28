@@ -77,6 +77,10 @@ export default function Page() {
   // Firestore 参照
   const placesCol = useMemo(() => collection(db, "lists", listId, "places"), [listId]);
   
+const totalPlaces = places.length;
+const donePlaces = places.filter(p => p.status === "done").length;
+const achievementRate = totalPlaces > 0 ? Math.round((donePlaces / totalPlaces) * 100) : 0;
+
   // ジャンル一覧を動的に取得
   const genreOptions = useMemo(() => {
     const set = new Set<string>();
@@ -173,14 +177,45 @@ await updateDoc(doc(placesCol, id), { photos: merged, updatedAt: nowIso(), updat
 return (
 <div className="min-h-screen bg-neutral-50 text-neutral-900 p-4 md:p-8">
 <header className="flex items-center justify-between mb-6">
-<h1 className="text-2xl md:text-3xl font-bold">🍽️グルメ制覇リスト</h1>
-<span className={cls(
-"text-sm px-3 py-1 rounded-full",
-readOnly ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-)}>{readOnly ? "閲覧専用" : "編集可能"}</span>
+  <div>
+    <h1 className="text-2xl md:text-3xl font-bold">
+      🍽️{listId === "default" ? "" : `${listId}さんとの`}グルメ制覇リスト
+    </h1>
+    <div className="flex gap-4 mt-2 text-sm">
+      <span className="bg-sky-100 text-sky-800 px-2 py-1 rounded">
+        行きたい: {filtered.filter(p => p.status === "want").length}件
+      </span>
+      <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded">
+        予約済み: {filtered.filter(p => p.status === "booked").length}件
+      </span>
+      <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded">
+        制覇済み: {filtered.filter(p => p.status === "done").length}件
+      </span>
+    </div>
+  </div>
+  <span className={cls(
+    "text-sm px-3 py-1 rounded-full",
+    readOnly ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+  )}>{readOnly ? "閲覧専用" : "編集可能"}</span>
 </header>
 
-
+{totalPlaces > 0 && (
+  <div className="mb-4 p-4 bg-white rounded-2xl shadow-sm">
+    <div className="flex justify-between items-center mb-2">
+      <span className="font-semibold">制覇率</span>
+      <span className="text-lg font-bold text-emerald-600">{achievementRate}%</span>
+    </div>
+    <div className="w-full bg-gray-200 rounded-full h-3">
+      <div 
+        className="bg-emerald-500 h-3 rounded-full transition-all duration-300"
+        style={{ width: `${achievementRate}%` }}
+      />
+    </div>
+    <div className="text-xs text-gray-600 mt-1">
+      {donePlaces}/{totalPlaces} 店舗制覇
+    </div>
+  </div>
+)}
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 <section className="md:col-span-2">
